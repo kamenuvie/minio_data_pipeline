@@ -43,7 +43,7 @@ jobs:
         run: |
           set -e
 
-          mc alias set myminio https://${MINIO_URL} $MINIO_ACCESS_KEY $MINIO_ROOT_PASSWORD --api S3v4
+          mc alias set myminio https://$MINIO_URL $MINIO_ACCESS_KEY $MINIO_ROOT_PASSWORD --api S3v4
 
           mc mb --ignore-existing myminio/$MINIO_BUCKET_NAME
 
