@@ -38,7 +38,7 @@ jobs:
         env:
           MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}       # e.g., storage-production.up.railway.app
           MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
-          MINIO_SECRET_KEY: ${{ secrets.MINIO_ROOT_PASSWORD }}
+          MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
           MINIO_BUCKET_NAME: ${{ secrets.MINIO_BUCKET_NAME }}
         run: |
           set -e
