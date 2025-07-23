@@ -1,19 +1,34 @@
-name: Scrape, Clean, and Upload to MinIO
+name: Scrape, Clean, and Upload to MinIO (Docker)
 
 on:
   schedule:
-    - cron: '0 */1 * * *'  # ⏰ Runs every hour
-  workflow_dispatch:        # 🚀 Manual trigger option
+    - cron: '0 */1 * * *'  # Every hour
+  workflow_dispatch:
 
 jobs:
   scrape_clean_upload:
     runs-on: ubuntu-latest
 
+    services:
+      minio:
+        image: minio/minio
+        ports:
+          - 9000:9000
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        options: >-
+          --health-cmd="curl -f http://localhost:9000/minio/health/ready || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+        command: server /data
+
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v3
 
-      - name: 🐍 Set up Python 3.11
+      - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
@@ -21,24 +36,31 @@ jobs:
       - name: 📦 Install dependencies
         run: pip install -r requirements.txt
 
-      - name: 🕸️ Scrape and clean data
+      - name: 🕸️ Run scraping and cleaning script
         run: python scraper/run_scraper.py
 
-      - name: 🛠️ Install MinIO Client (mc)
+      - name: 🧪 Install MinIO Client (mc)
         run: |
           wget https://dl.min.io/client/mc/release/linux-amd64/mc
           chmod +x mc
           sudo mv mc /usr/local/bin/
 
-      - name: ☁️ Upload to local MinIO
+      - name: ☁️ Upload cleaned data to MinIO
         run: |
-          set -e  # Exit on any error
+          set -e
 
-          # Configure local MinIO connection
-          mc alias set localminio http://127.0.0.1:9000 minioadmin minioadmin --api S3v4
+          # Wait for MinIO service to be ready
+          for i in {1..10}; do
+            curl -s http://localhost:9000/minio/health/ready && break
+            echo "Waiting for MinIO..."
+            sleep 3
+          done
 
-          # Ensure bucket exists (no error if it already does)
+          # Configure MinIO alias
+          mc alias set localminio http://localhost:9000 minioadmin minioadmin --api S3v4
+
+          # Create bucket if not exists
           mc mb --ignore-existing localminio/mybucket
 
-          # Upload contents of cleaned_data folder
+          # Upload cleaned data folder (ensure it exists)
           mc cp -r cleaned_data/ localminio/mybucket/
