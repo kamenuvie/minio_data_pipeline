@@ -1,31 +1,49 @@
-name: Scrape Books and Upload to MinIO
+name: Scrape, Clean, and Upload to MinIO
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Every 6 hours
-  workflow_dispatch:       # Allow manual trigger from GitHub UI
+    - cron: '0 */6 * * *'  # Runs every 6 hours
+  workflow_dispatch:
 
 jobs:
-  scrape-and-upload:
+  scrape_clean_upload:
     runs-on: ubuntu-latest
 
-    env:
-      MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
-      MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
-      MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
-      MINIO_BUCKET_NAME: ${{ secrets.MINIO_BUCKET_NAME }}
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Install dependencies
-      run: pip install -r requirements.txt
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
 
-    - name: Run scraper and upload to MinIO
-      run: python scraper/run_scraper.py
+      - name: 🕸️ Run scraping script and clean data
+        run: python scraper/run_scraper.py
+
+      # - name: 🧹 Run cleaning script
+      #   run: python scraper/clean.py
+
+      - name: 📥 Install MinIO Client (mc)
+        run: |
+          wget https://dl.min.io/client/mc/release/linux-amd64/mc
+          chmod +x mc
+          sudo mv mc /usr/local/bin/
+
+      - name: ☁️ Upload cleaned data to MinIO
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}       # e.g., storage-production.up.railway.app
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_ROOT_PASSWORD }}
+          MINIO_BUCKET_NAME: ${{ secrets.MINIO_BUCKET_NAME }}
+        run: |
+          set -e
+
+          mc alias set myminio https://${MINIO_ENDPOINT} $MINIO_ACCESS_KEY $MINIO_ROOT_PASSWORD --api S3v4
+
+          mc mb --ignore-existing myminio/$MINIO_BUCKET_NAME
+
+          mc cp -r cleaned_data/ myminio/$MINIO_BUCKET_NAME/
