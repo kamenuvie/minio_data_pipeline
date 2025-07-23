@@ -2,19 +2,18 @@ name: Scrape, Clean, and Upload to MinIO
 
 on:
   schedule:
-    - cron: '0 */1 * * *'  # Runs every 1 hour
-  workflow_dispatch:
+    - cron: '0 */1 * * *'  # ⏰ Runs every hour
+  workflow_dispatch:        # 🚀 Manual trigger option
 
 jobs:
   scrape_clean_upload:
     runs-on: ubuntu-latest
-    # environment: production
 
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v3
 
-      - name: 🐍 Set up Python
+      - name: 🐍 Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
@@ -22,27 +21,24 @@ jobs:
       - name: 📦 Install dependencies
         run: pip install -r requirements.txt
 
-      - name: 🕸️ Run scraping script and clean data
+      - name: 🕸️ Scrape and clean data
         run: python scraper/run_scraper.py
 
-      # - name: 🧹 Run cleaning script
-      #   run: python scraper/clean.py
-
-      - name: Install MinIO Client (mc)
+      - name: 🛠️ Install MinIO Client (mc)
         run: |
           wget https://dl.min.io/client/mc/release/linux-amd64/mc
           chmod +x mc
           sudo mv mc /usr/local/bin/
 
-      - name: Upload to local MinIO
+      - name: ☁️ Upload to local MinIO
         run: |
-          set -e  # Stop on error
+          set -e  # Exit on any error
 
-          # Add MinIO local server
+          # Configure local MinIO connection
           mc alias set localminio http://127.0.0.1:9000 minioadmin minioadmin --api S3v4
 
-          # Make sure the bucket exists
+          # Ensure bucket exists (no error if it already does)
           mc mb --ignore-existing localminio/mybucket
 
-          # Upload cleaned data
+          # Upload contents of cleaned_data folder
           mc cp -r cleaned_data/ localminio/mybucket/
