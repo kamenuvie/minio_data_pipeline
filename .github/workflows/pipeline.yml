@@ -2,13 +2,13 @@ name: Scrape, Clean, and Upload to MinIO
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Runs every 6 hours
+    - cron: '0 */1 * * *'  # Runs every 1 hour
   workflow_dispatch:
 
 jobs:
   scrape_clean_upload:
     runs-on: ubuntu-latest
-    environment: production
+    # environment: production
 
     steps:
       - name: 📥 Checkout repository
@@ -28,23 +28,21 @@ jobs:
       # - name: 🧹 Run cleaning script
       #   run: python scraper/clean.py
 
-      - name: 📥 Install MinIO Client (mc)
+      - name: Install MinIO Client (mc)
         run: |
           wget https://dl.min.io/client/mc/release/linux-amd64/mc
           chmod +x mc
           sudo mv mc /usr/local/bin/
 
-      - name: ☁️ Upload cleaned data to MinIO
-        env:
-          MINIO_URL: ${{ secrets.MINIO_URL}}       # e.g., storage-production.up.railway.app
-          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
-          MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
-          MINIO_BUCKET_NAME: ${{ secrets.MINIO_BUCKET_NAME }}
+      - name: Upload to local MinIO
         run: |
-          set -e
+          set -e  # Stop on error
 
-          mc alias set myminio https://$MINIO_URL $MINIO_ACCESS_KEY $MINIO_ROOT_PASSWORD --api S3v4
+          # Add MinIO local server
+          mc alias set localminio http://127.0.0.1:9000 minioadmin minioadmin --api S3v4
 
-          mc mb --ignore-existing myminio/$MINIO_BUCKET_NAME
+          # Make sure the bucket exists
+          mc mb --ignore-existing localminio/mybucket
 
-          mc cp -r cleaned_data/ myminio/$MINIO_BUCKET_NAME/
+          # Upload cleaned data
+          mc cp -r cleaned_data/ localminio/mybucket/
