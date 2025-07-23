@@ -8,6 +8,7 @@ on:
 jobs:
   scrape_clean_upload:
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: 📥 Checkout repository
