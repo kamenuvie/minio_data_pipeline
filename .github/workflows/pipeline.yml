@@ -9,24 +9,17 @@ jobs:
   scrape_clean_upload:
     runs-on: ubuntu-latest
 
-    services:
-      minio:
-        image: minio/minio
-        ports:
-          - 9000:9000
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-        options: >-
-          --health-cmd="curl -f http://localhost:9000/minio/health/ready || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-        args: server /data  # ✅ Correct replacement for 'command'
-
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v3
+
+      - name: 🐳 Start MinIO in Docker
+        run: |
+          docker run -d -p 9000:9000 -p 9001:9001 \
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin \
+            --name minio \
+            quay.io/minio/minio server /data --console-address ":9001"
 
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
@@ -50,7 +43,7 @@ jobs:
           set -e
           for i in {1..10}; do
             curl -s http://localhost:9000/minio/health/ready && break
-            echo "Waiting for MinIO..."
+            echo "Waiting for MinIO to be ready..."
             sleep 3
           done
 
