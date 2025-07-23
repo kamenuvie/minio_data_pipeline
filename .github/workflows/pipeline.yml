@@ -53,3 +53,10 @@ jobs:
 
       - name: ✅ List uploaded files
         run: mc ls localminio/mybucket/
+
+      - name: 📦 Upload output files as GitHub Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraped-book-data
+          path: scraper/output/
+
