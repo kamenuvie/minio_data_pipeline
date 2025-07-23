@@ -49,7 +49,7 @@ jobs:
 
           mc alias set localminio http://localhost:9000 minioadmin minioadmin --api S3v4
           mc mb --ignore-existing localminio/mybucket
-          mc cp -r cleaned_data/ localminio/mybucket/
+          mc cp -r scraper/output/ localminio/mybucket/
 
       - name: ✅ List uploaded files
         run: mc ls localminio/mybucket/
