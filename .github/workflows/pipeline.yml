@@ -22,7 +22,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-        command: server /data
+        args: server /data  # ✅ Correct replacement for 'command'
 
     steps:
       - name: 📥 Checkout repository
@@ -48,19 +48,15 @@ jobs:
       - name: ☁️ Upload cleaned data to MinIO
         run: |
           set -e
-
-          # Wait for MinIO service to be ready
           for i in {1..10}; do
             curl -s http://localhost:9000/minio/health/ready && break
             echo "Waiting for MinIO..."
             sleep 3
           done
 
-          # Configure MinIO alias
           mc alias set localminio http://localhost:9000 minioadmin minioadmin --api S3v4
-
-          # Create bucket if not exists
           mc mb --ignore-existing localminio/mybucket
-
-          # Upload cleaned data folder (ensure it exists)
           mc cp -r cleaned_data/ localminio/mybucket/
+
+      - name: ✅ List uploaded files
+        run: mc ls localminio/mybucket/
