@@ -2,7 +2,7 @@ name: Scrape, Clean, and Upload to MinIO (Docker)
 
 on:
   schedule:
-    - cron: '0 */1 * * *'  # Every hour
+    - cron: '0 *11 * * *'  # Every hour
   workflow_dispatch:
   
 
